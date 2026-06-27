@@ -62,6 +62,15 @@ docker build -t stock-news . && docker run -p 8000:8000 stock-news
 
 ---
 
+## 테스트
+
+핵심 로직(톤 분류·중복제거·소스 다양성·종목 변환·요약)은 단위 테스트로 보호됩니다.
+
+```bash
+pip install -r requirements-dev.txt
+cd backend && python -m pytest -q
+```
+
 ## 구조
 
 ```

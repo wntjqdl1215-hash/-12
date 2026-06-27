@@ -45,7 +45,7 @@ function removeSymbol(v) {
 // 관심 종목 칩 (삭제 가능)
 function renderChips() {
   watchlistEl.innerHTML = watchlist.map((v) =>
-    `<span class="wchip">${esc(v)}<button class="x" data-v="${esc(v)}">×</button></span>`
+    `<span class="wchip">${esc(v)}<button class="x" data-v="${esc(v)}" aria-label="${esc(v)} 삭제" title="삭제">×</button></span>`
   ).join("") || `<span class="label">관심 종목을 추가하세요</span>`;
   watchlistEl.querySelectorAll(".x").forEach((b) =>
     b.addEventListener("click", () => removeSymbol(b.dataset.v)));
@@ -157,23 +157,28 @@ function render(data) {
       <div class="grid">${cards}</div></section>`;
   }).join("");
 
-  // 용어 클릭 -> 카드 하단에 설명 표시(화면 밖으로 안 잘림, 카드당 한 줄)
-  results.querySelectorAll(".term").forEach((el) =>
-    el.addEventListener("click", () => {
-      const card = el.closest(".card");
-      const box = card.querySelector(".term-explain");
-      const name = el.textContent;
-      if (!box.hidden && box.dataset.term === name) {       // 같은 칩 다시 누르면 닫기
-        box.hidden = true; box.dataset.term = "";
-        el.classList.remove("active");
-        return;
-      }
-      card.querySelectorAll(".term").forEach((t) => t.classList.remove("active"));
-      el.classList.add("active");
-      box.textContent = `${name} — ${el.dataset.explain}`;
-      box.dataset.term = name;
-      box.hidden = false;
-    }));
+  // 용어 클릭/키보드 -> 카드 하단에 설명 표시(화면 밖으로 안 잘림, 카드당 한 줄)
+  const toggleTerm = (el) => {
+    const card = el.closest(".card");
+    const box = card.querySelector(".term-explain");
+    const name = el.textContent;
+    if (!box.hidden && box.dataset.term === name) {       // 같은 칩 다시 누르면 닫기
+      box.hidden = true; box.dataset.term = "";
+      el.classList.remove("active");
+      return;
+    }
+    card.querySelectorAll(".term").forEach((t) => t.classList.remove("active"));
+    el.classList.add("active");
+    box.textContent = `${name} — ${el.dataset.explain}`;
+    box.dataset.term = name;
+    box.hidden = false;
+  };
+  results.querySelectorAll(".term").forEach((el) => {
+    el.addEventListener("click", () => toggleTerm(el));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTerm(el); }
+    });
+  });
 }
 
 function priceHTML(p) {
@@ -188,7 +193,7 @@ function priceHTML(p) {
 
 function cardHTML(it) {
   const terms = (it.terms || []).map((t) =>
-    `<span class="term" data-explain="${esc(t.explain)}">${esc(t.term)}</span>`
+    `<span class="term" role="button" tabindex="0" aria-label="${esc(t.term)} 뜻 보기" data-explain="${esc(t.explain)}">${esc(t.term)}</span>`
   ).join("");
 
   // 진짜 '쉬운' 부분은 💡한줄정리. 아래는 본문 핵심이므로 라벨을 구분한다.
