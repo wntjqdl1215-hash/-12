@@ -86,9 +86,13 @@ def from_google_news(code: str, name: str, limit: int) -> list[NewsItem]:
         pub = (item.findtext("pubDate") or "").strip()
         src_el = item.find("source")
         src = src_el.text.strip() if src_el is not None and src_el.text else "구글뉴스"
+        # 구글뉴스 링크는 리다이렉트라 본문 재수집이 어렵다 -> RSS description을 본문으로 사용
+        desc = _strip_tags(item.findtext("description") or "")
+        # description엔 같은 매체명/링크 텍스트가 섞이므로 제목을 보강 텍스트로
+        body = desc if len(desc) > len(title) else title
         items.append(NewsItem(
             title=title, source=src, source_type="구글뉴스",
-            date=_fmt_rss_date(pub), url=link, code=code, stock_name=name,
+            date=_fmt_rss_date(pub), url=link, code=code, stock_name=name, body=body,
         ))
         if len(items) >= limit:
             break

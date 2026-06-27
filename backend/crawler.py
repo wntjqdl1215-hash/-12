@@ -32,8 +32,10 @@ def fetch_news(code: str, stock_name: str, limit: int = 6, with_body: bool = Tru
 
     if with_body:
         for it in items:
-            if not it.body:
-                it.body = _fetch_body(it.url)
+            # 본문이 이미 있거나(블로그/구글RSS), 구글 리다이렉트 링크면 재수집 생략
+            if it.body or "news.google.com" in it.url:
+                continue
+            it.body = _fetch_body(it.url)
     return items
 
 

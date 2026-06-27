@@ -123,12 +123,23 @@ function render(data) {
       <div class="stock-head">
         <span class="name">${esc(s.name)}</span>
         <span class="code">${esc(s.code || "")}</span>
+        ${priceHTML(s.price)}
       </div>
       <div class="grid">${cards}</div></section>`;
   }).join("");
 
   results.querySelectorAll(".term").forEach((el) =>
     el.addEventListener("click", () => el.classList.toggle("open")));
+}
+
+function priceHTML(p) {
+  if (!p) return "";
+  const arrow = p.direction === "up" ? "▲" : p.direction === "down" ? "▼" : "−";
+  const sign = p.change > 0 ? "+" : "";
+  return `<span class="price ${p.direction}">
+    <b>${Number(p.price).toLocaleString()}</b>
+    <span class="chg">${arrow} ${sign}${Number(p.change).toLocaleString()} (${sign}${p.rate}%)</span>
+  </span>`;
 }
 
 function cardHTML(it) {
@@ -147,6 +158,7 @@ function cardHTML(it) {
       ${srcType}<span>${esc(it.source)}</span><span>${esc(it.date)}</span>${newBadge}
     </div>
     <h3 class="title">${esc(it.title)}</h3>
+    ${it.takeaway ? `<div class="takeaway">💡 ${esc(it.takeaway)}</div>` : ""}
     <div class="summary"><span class="badge">${engineBadge}</span>${esc(it.summary)}</div>
     <div class="cardtags">${toneBadge}${terms}</div>
     <div class="actions">

@@ -19,12 +19,15 @@ import time
 from flask import Flask, jsonify, request, send_from_directory
 
 from crawler import fetch_news
+from prices import fetch_price
 from stocks import normalize
 from summarizer import summarize
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
 CACHE_TTL = int(os.getenv("CACHE_TTL", "300"))           # 캐시 유효시간(초)
 REFRESH_INTERVAL = int(os.getenv("REFRESH_INTERVAL", "300"))  # 자동 수집 주기(초)
+MAX_SEEN = 500       # 종목별 기억하는 URL 최대 개수(메모리 상한)
+MAX_TRACKED = 200    # 자동 수집 대상 최대 개수
 
 app = Flask(__name__, static_folder=None)
 
@@ -36,20 +39,26 @@ _lock = threading.Lock()
 
 def _build_symbol_news(symbol: str, limit: int) -> dict:
     code, name = normalize(symbol)
-    result = {"input": symbol, "code": code, "name": name, "items": [], "error": None}
+    result = {"input": symbol, "code": code, "name": name, "price": None,
+              "items": [], "error": None}
     if not code:
         result["error"] = "종목코드를 찾지 못했습니다. 이름 또는 6자리 코드를 확인하세요."
         return result
 
+    result["price"] = fetch_price(code)
     news = fetch_news(code, name, limit=limit)
 
-    # NEW 판정: 해당 종목을 처음 보는 경우엔 기준선만 만들고 NEW 표시 안 함
-    first_time = code not in _seen_urls
-    seen = _seen_urls.setdefault(code, set())
+    # NEW 판정 + seen 갱신은 락 안에서 (요청 스레드 + 스케줄러 스레드 경합 방지)
+    with _lock:
+        first_time = code not in _seen_urls
+        seen = _seen_urls.setdefault(code, set())
+        new_urls = {n.url for n in news if n.url not in seen}
+        seen.update(n.url for n in news)
+        if len(seen) > MAX_SEEN:               # 오래된 것부터 잘라 메모리 상한 유지
+            _seen_urls[code] = set(list(seen)[-MAX_SEEN:])
 
     for n in news:
         s = summarize(n.title, n.body)
-        is_new = (not first_time) and (n.url not in seen)
         result["items"].append({
             "title": n.title,
             "source": n.source,
@@ -57,13 +66,12 @@ def _build_symbol_news(symbol: str, limit: int) -> dict:
             "date": n.date,
             "url": n.url,
             "summary": s["summary"],
+            "takeaway": s.get("takeaway"),
             "terms": s["terms"],
             "tone": s["tone"],
             "engine": s["engine"],
-            "is_new": is_new,
+            "is_new": (not first_time) and (n.url in new_urls),
         })
-    for n in news:
-        seen.add(n.url)
     return result
 
 
@@ -71,7 +79,8 @@ def _get_symbol_news(symbol: str, limit: int) -> dict:
     now = time.time()
     key = f"{symbol}:{limit}"
     with _lock:
-        _tracked.add(key)
+        if len(_tracked) < MAX_TRACKED:
+            _tracked.add(key)
         cached = _cache.get(key)
         if cached and now - cached[0] < CACHE_TTL:
             return cached[1]
