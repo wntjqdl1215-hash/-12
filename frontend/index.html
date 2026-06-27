@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>주식 뉴스 한눈에</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f1115" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="주식뉴스" />
 </head>
 <body>
   <header class="topbar">
@@ -33,7 +38,10 @@
 
   <div class="statusbar">
     <span id="updated"></span>
-    <label class="auto"><input type="checkbox" id="autoRefresh" checked /> 자동 새로고침(5분)</label>
+    <div class="controls">
+      <button id="notifyBtn" class="ghost" hidden>🔔 알림 켜기</button>
+      <label class="auto"><input type="checkbox" id="autoRefresh" checked /> 자동 새로고침(5분)</label>
+    </div>
   </div>
 
   <main id="results"></main>

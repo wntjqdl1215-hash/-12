@@ -63,6 +63,7 @@ async function load() {
     renderBriefing(data);
     render(data);
     stamp(data.generated_at);
+    notifyNew(data);
   } catch (e) {
     results.innerHTML = `<div class="error">불러오기 실패: ${esc(e.message)}</div>`;
   }
@@ -173,8 +174,52 @@ input.addEventListener("keydown", (e) => {
 document.querySelectorAll(".quick").forEach((el) =>
   el.addEventListener("click", () => { addSymbols(el.dataset.v); load(); }));
 
+// ----- 알림 (NEW 뉴스) -----
+const notifyBtn = $("#notifyBtn");
+function setupNotifications() {
+  if (!("Notification" in window)) return;
+  const refresh = () => {
+    if (Notification.permission === "default") {
+      notifyBtn.hidden = false;
+      notifyBtn.textContent = "🔔 알림 켜기";
+    } else if (Notification.permission === "granted") {
+      notifyBtn.hidden = false;
+      notifyBtn.textContent = "🔔 알림 켜짐";
+      notifyBtn.disabled = true;
+    } else {
+      notifyBtn.hidden = true; // 거부됨
+    }
+  };
+  notifyBtn.addEventListener("click", async () => {
+    await Notification.requestPermission();
+    refresh();
+  });
+  refresh();
+}
+
+function notifyNew(data) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const news = [];
+  (data.stocks || []).forEach((s) => {
+    (s.items || []).forEach((i) => { if (i.is_new) news.push(`${s.name}: ${i.title}`); });
+  });
+  if (!news.length) return;
+  const body = news.slice(0, 3).join("\n") + (news.length > 3 ? `\n외 ${news.length - 3}건` : "");
+  try {
+    new Notification(`📈 새 뉴스 ${news.length}건`, { body, icon: "/icons/icon-192.png", tag: "stock-news" });
+  } catch (_) {}
+}
+
+// ----- 서비스워커 등록 (PWA) -----
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 // 첫 진입
 watchlist = loadWatchlist();
 renderChips();
 setupAutoRefresh();
+setupNotifications();
 load();
