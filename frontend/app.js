@@ -51,11 +51,14 @@ function renderChips() {
     b.addEventListener("click", () => removeSymbol(b.dataset.v)));
 }
 
-async function load() {
+async function load(preserveScroll = false) {
   if (!watchlist.length) { results.innerHTML = `<div class="empty">관심 종목을 추가하세요.</div>`; briefingEl.hidden = true; return; }
   const symbols = watchlist.join(",");
-  results.innerHTML = `<div class="loading">뉴스를 모으는 중… ⏳</div>`;
-  briefingEl.hidden = true;
+  const y = window.scrollY;
+  if (!preserveScroll) {  // 자동 새로고침일 땐 깜빡임/스크롤 튕김 없이 조용히 교체
+    results.innerHTML = `<div class="loading">뉴스를 모으는 중… ⏳</div>`;
+    briefingEl.hidden = true;
+  }
 
   try {
     const res = await fetch(`/api/news?symbols=${encodeURIComponent(symbols)}&limit=5`);
@@ -64,8 +67,9 @@ async function load() {
     render(data);
     stamp(data.generated_at);
     notifyNew(data);
+    if (preserveScroll) window.scrollTo(0, y);  // 읽던 위치 유지
   } catch (e) {
-    results.innerHTML = `<div class="error">불러오기 실패: ${esc(e.message)}</div>`;
+    if (!preserveScroll) results.innerHTML = `<div class="error">불러오기 실패: ${esc(e.message)}</div>`;
   }
 }
 
@@ -128,8 +132,23 @@ function render(data) {
       <div class="grid">${cards}</div></section>`;
   }).join("");
 
+  // 용어 클릭 -> 카드 하단에 설명 표시(화면 밖으로 안 잘림, 카드당 한 줄)
   results.querySelectorAll(".term").forEach((el) =>
-    el.addEventListener("click", () => el.classList.toggle("open")));
+    el.addEventListener("click", () => {
+      const card = el.closest(".card");
+      const box = card.querySelector(".term-explain");
+      const name = el.textContent;
+      if (!box.hidden && box.dataset.term === name) {       // 같은 칩 다시 누르면 닫기
+        box.hidden = true; box.dataset.term = "";
+        el.classList.remove("active");
+        return;
+      }
+      card.querySelectorAll(".term").forEach((t) => t.classList.remove("active"));
+      el.classList.add("active");
+      box.textContent = `${name} — ${el.dataset.explain}`;
+      box.dataset.term = name;
+      box.hidden = false;
+    }));
 }
 
 function priceHTML(p) {
@@ -144,7 +163,7 @@ function priceHTML(p) {
 
 function cardHTML(it) {
   const terms = (it.terms || []).map((t) =>
-    `<span class="term">${esc(t.term)}<span class="tip">${esc(t.explain)}</span></span>`
+    `<span class="term" data-explain="${esc(t.explain)}">${esc(t.term)}</span>`
   ).join("");
 
   // 진짜 '쉬운' 부분은 💡한줄정리. 아래는 본문 핵심이므로 라벨을 구분한다.
@@ -163,6 +182,7 @@ function cardHTML(it) {
     ${it.takeaway ? `<div class="takeaway">💡 ${esc(it.takeaway)}</div>` : ""}
     <div class="summary"><span class="badge">${engineBadge}</span>${esc(it.summary)}</div>
     <div class="cardtags">${toneBadge}${terms}</div>
+    <div class="term-explain" hidden></div>
     <div class="actions">
       <a class="btn-open" href="${esc(it.url)}" target="_blank" rel="noopener">본문 보기</a>
     </div>

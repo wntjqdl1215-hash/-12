@@ -25,7 +25,7 @@ def fetch_news(code: str, stock_name: str, limit: int = 6, with_body: bool = Tru
             continue  # 소스 하나 실패는 무시
 
     items = _dedupe(collected)
-    items = _sort_recent(items)[:limit]
+    items = _diversify(_sort_recent(items), limit)
 
     if not items:
         return sample_news(code, stock_name, limit)  # 전부 실패 → 샘플 폴백
@@ -39,14 +39,46 @@ def fetch_news(code: str, stock_name: str, limit: int = 6, with_body: bool = Tru
     return items
 
 
+def _norm_title(title: str) -> str:
+    """교차 출처 중복 판정용 제목 정규화.
+
+    구글뉴스 제목의 ' - 매체명' 접미사, 앞쪽 '[블로그]/[속보]' 대괄호,
+    공백/문장부호를 제거해 같은 기사를 같은 키로 만든다.
+    """
+    t = title or ""
+    t = re.sub(r"\s*[-–|]\s*[^\-–|]{1,20}$", "", t)   # 끝의 ' - 한국경제' 류 제거
+    t = re.sub(r"^\s*\[[^\]]{1,10}\]\s*", "", t)       # 앞의 '[블로그]' 류 제거
+    t = re.sub(r"[\s\.,'\"·…]+", "", t)                 # 공백·문장부호 제거
+    return t[:30].lower()
+
+
 def _dedupe(items: list[NewsItem]) -> list[NewsItem]:
     seen = set()
     out = []
     for it in items:
-        key = re.sub(r"\s+", "", it.title)[:40]
+        key = _norm_title(it.title)
         if key and key not in seen:
             seen.add(key)
             out.append(it)
+    return out
+
+
+def _diversify(sorted_items: list[NewsItem], limit: int) -> list[NewsItem]:
+    """소스 편중 방지: 출처별로 라운드로빈 선택해 다양성을 보장.
+
+    각 출처 안에서는 최신순을 유지한다(입력이 이미 최신순 정렬).
+    """
+    buckets: dict[str, list[NewsItem]] = {}
+    for it in sorted_items:
+        buckets.setdefault(it.source_type, []).append(it)
+
+    out: list[NewsItem] = []
+    while len(out) < limit and any(buckets.values()):
+        for st in list(buckets.keys()):
+            if buckets[st]:
+                out.append(buckets[st].pop(0))
+                if len(out) >= limit:
+                    break
     return out
 
 
