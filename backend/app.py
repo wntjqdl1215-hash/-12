@@ -74,7 +74,44 @@ def _build_symbol_news(symbol: str, limit: int) -> dict:
             "engine": s["engine"],
             "is_new": (not first_time) and (n.url in new_urls),
         })
+
+    result["tone_tally"] = _tone_tally(result["items"])
+    result["insight"] = _insight(result["price"], result["tone_tally"])
     return result
+
+
+def _tone_tally(items: list[dict]) -> dict:
+    tally = {"positive": 0, "negative": 0, "neutral": 0}
+    for it in items:
+        tally[it["tone"]["tone"]] += 1
+    return tally
+
+
+def _insight(price: dict | None, tally: dict) -> str | None:
+    """시세 방향 + 뉴스 톤 우세를 묶어 '왜 움직였나' 한 줄(정보 제공)."""
+    if tally["positive"] == 0 and tally["negative"] == 0:
+        news = "neutral"
+    elif tally["positive"] > tally["negative"]:
+        news = "positive"
+    elif tally["negative"] > tally["positive"]:
+        news = "negative"
+    else:
+        news = "mixed"
+
+    d = price["direction"] if price else None
+    if d == "up" and news == "positive":
+        return "📈 주가도 오르고 뉴스 분위기도 긍정적이에요."
+    if d == "up" and news == "negative":
+        return "📈 주가는 올랐지만 뉴스 분위기는 부정적이에요. 배경을 살펴보세요."
+    if d == "down" and news == "negative":
+        return "📉 주가도 내리고 뉴스 분위기도 부정적이에요."
+    if d == "down" and news == "positive":
+        return "📉 뉴스는 긍정적인데 주가는 내렸어요. 단기 수급일 수 있어요."
+    if news == "positive":
+        return "🟢 최근 뉴스 분위기는 대체로 긍정적이에요."
+    if news == "negative":
+        return "🔴 최근 뉴스 분위기는 대체로 부정적이에요."
+    return "⚪ 뚜렷한 방향성은 약해요. 정보만 참고하세요."
 
 
 def _get_symbol_news(symbol: str, limit: int) -> dict:

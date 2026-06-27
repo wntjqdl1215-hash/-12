@@ -82,6 +82,30 @@ function stamp(ts) {
 
 const TONE_LABEL = { positive: "🟢 긍정", negative: "🔴 부정", neutral: "⚪ 중립" };
 
+// 'YYYY.MM.DD HH:MM' 또는 'YYYY.MM.DD' -> '3시간 전' 같은 상대시간
+function relativeTime(dateStr) {
+  if (!dateStr) return "";
+  const m = dateStr.match(/(\d{4})\.(\d{2})\.(\d{2})(?:\s+(\d{2}):(\d{2}))?/);
+  if (!m) return dateStr;
+  const d = new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 0) return dateStr;
+  if (diff < 60) return "방금 전";
+  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}일 전`;
+  return dateStr.slice(0, 10);
+}
+
+function tallyHTML(t) {
+  if (!t) return "";
+  const parts = [];
+  if (t.positive) parts.push(`🟢${t.positive}`);
+  if (t.negative) parts.push(`🔴${t.negative}`);
+  if (t.neutral) parts.push(`⚪${t.neutral}`);
+  return parts.join(" ");
+}
+
 // ----- 아침 브리핑 -----
 function renderBriefing(data) {
   const stocks = (data.stocks || []).filter((s) => !s.error && (s.items || []).length);
@@ -89,12 +113,12 @@ function renderBriefing(data) {
 
   const rows = stocks.map((s) => {
     const top = s.items[0];
-    const tone = (top.tone && TONE_LABEL[top.tone.tone]) || "";
+    const tally = tallyHTML(s.tone_tally);
     const newCnt = s.items.filter((i) => i.is_new).length;
     return `<li class="brief-row" data-target="stock-${esc(s.code)}">
       <span class="brief-name">${esc(s.name)}</span>
       <span class="brief-headline">${esc(top.title)}</span>
-      <span class="brief-meta">${tone}${newCnt ? ` · NEW ${newCnt}` : ""}</span>
+      <span class="brief-meta">${tally}${newCnt ? ` · NEW ${newCnt}` : ""}</span>
     </li>`;
   }).join("");
 
@@ -129,6 +153,7 @@ function render(data) {
         <span class="code">${esc(s.code || "")}</span>
         ${priceHTML(s.price)}
       </div>
+      ${s.insight ? `<div class="insight">${esc(s.insight)}</div>` : ""}
       <div class="grid">${cards}</div></section>`;
   }).join("");
 
@@ -176,7 +201,7 @@ function cardHTML(it) {
 
   return `<article class="card">
     <div class="meta">
-      ${srcType}<span>${esc(it.source)}</span><span>${esc(it.date)}</span>${newBadge}
+      ${srcType}<span>${esc(it.source)}</span><span title="${esc(it.date)}">${esc(relativeTime(it.date))}</span>${newBadge}
     </div>
     <h3 class="title">${esc(it.title)}</h3>
     ${it.takeaway ? `<div class="takeaway">💡 ${esc(it.takeaway)}</div>` : ""}
