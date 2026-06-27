@@ -55,6 +55,9 @@ def from_naver_finance(code: str, name: str, limit: int) -> list[NewsItem]:
         a = row.select_one("td.title a")
         if not a:
             continue
+        # '관련뉴스' 묶음(relation_lst) 안의 중복 행은 건너뛴다
+        if row.find_parent(class_="relation_lst") or "relation_lst" in (row.get("class") or []):
+            continue
         info = row.select_one("td.info")
         date = row.select_one("td.date")
         href = a.get("href", "")
@@ -119,7 +122,7 @@ def from_naver_blog(code: str, name: str, limit: int) -> list[NewsItem]:
             title=_strip_tags(it.get("title", "")),
             source=it.get("bloggername", "블로그"),
             source_type="블로그",
-            date=it.get("postdate", ""),
+            date=_fmt_yyyymmdd(it.get("postdate", "")),
             url=it.get("link", ""),
             code=code, stock_name=name,
             body=_strip_tags(it.get("description", "")),
@@ -133,6 +136,14 @@ ALL_SOURCES = [from_naver_finance, from_google_news, from_naver_blog]
 
 def _strip_tags(s: str) -> str:
     return re.sub(r"<[^>]+>", "", s or "").replace("&quot;", '"').replace("&amp;", "&").strip()
+
+
+def _fmt_yyyymmdd(s: str) -> str:
+    # '20260627' -> '2026.06.27'
+    s = (s or "").strip()
+    if len(s) == 8 and s.isdigit():
+        return f"{s[:4]}.{s[4:6]}.{s[6:]}"
+    return s
 
 
 def _fmt_rss_date(s: str) -> str:

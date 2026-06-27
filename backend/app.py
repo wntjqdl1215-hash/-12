@@ -49,13 +49,15 @@ def _build_symbol_news(symbol: str, limit: int) -> dict:
     news = fetch_news(code, name, limit=limit)
 
     # NEW 판정 + seen 갱신은 락 안에서 (요청 스레드 + 스케줄러 스레드 경합 방지)
+    # seen은 삽입순서를 보존하는 dict -> 메모리 상한 시 오래된 것부터 정확히 제거(FIFO)
     with _lock:
         first_time = code not in _seen_urls
-        seen = _seen_urls.setdefault(code, set())
+        seen = _seen_urls.setdefault(code, {})
         new_urls = {n.url for n in news if n.url not in seen}
-        seen.update(n.url for n in news)
-        if len(seen) > MAX_SEEN:               # 오래된 것부터 잘라 메모리 상한 유지
-            _seen_urls[code] = set(list(seen)[-MAX_SEEN:])
+        for n in news:
+            seen[n.url] = None
+        if len(seen) > MAX_SEEN:
+            _seen_urls[code] = dict(list(seen.items())[-MAX_SEEN:])
 
     for n in news:
         s = summarize(n.title, n.body)

@@ -64,15 +64,16 @@ _NEG_PHRASE = ["어닝 쇼크", "어닝쇼크", "목표주가 하향", "목표�
                "유상증자", "횡령", "배임", "분식", "분식회계", "상장폐지", "상폐", "거래정지",
                "감자", "압수수색", "검찰 수사", "소송", "리스크 확대", "감리"]
 
-# 약한 단일어 (±1). 상향/하향은 구문에서만 세서 이중집계 방지.
-_POS_WORD = ["상승", "개선", "확대", "성장", "기대", "수혜", "최대", "jump", "rise",
-             "surge", "record high", "gain", "beat", "rally"]
-_NEG_WORD = ["하락", "감소", "축소", "우려", "리스크", "부담", "둔화", "낙폭", "drop",
-             "fall", "plunge", "loss", "miss", "decline", "cut"]
+# 약한 단일어 (±1). 한국어는 부분일치, 영어는 단어경계로(부분일치 오탐 방지).
+_POS_WORD = ["상승", "개선", "확대", "성장", "기대", "수혜", "최대"]
+_NEG_WORD = ["하락", "감소", "축소", "우려", "리스크", "부담", "둔화", "낙폭"]
+_POS_EN = ["jump", "rise", "surge", "gain", "beat", "rally", "soar", "record high"]
+_NEG_EN = ["drop", "fall", "plunge", "loss", "miss", "decline", "cut", "slump", "tumble"]
 
 
 def classify_tone(text: str) -> dict:
     t = text or ""
+    low = t.lower()
     score = 0
     for p in _POS_SPECIAL:
         if p in t:
@@ -91,6 +92,13 @@ def classify_tone(text: str) -> dict:
             score += 1
     for w in _NEG_WORD:
         if w in t:
+            score -= 1
+    # 영어는 단어경계 매칭 (예: 'gain'이 'bargain'에 잘못 걸리지 않게)
+    for w in _POS_EN:
+        if re.search(rf"\b{re.escape(w)}\b", low):
+            score += 1
+    for w in _NEG_EN:
+        if re.search(rf"\b{re.escape(w)}\b", low):
             score -= 1
     # 부정어 뒤집기: '상승 아니다/안 오르' 같은 패턴 약하게 보정
     if re.search(r"(상승|개선|호재).{0,4}(아니|없|못|아님)", t):
