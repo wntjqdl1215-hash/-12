@@ -14,8 +14,7 @@
 
   <section class="search">
     <input id="symbols" type="text"
-           placeholder="예: 삼성전자, SK하이닉스, 000660"
-           value="삼성전자, SK하이닉스" />
+           placeholder="예: 삼성전자, SK하이닉스, 000660" />
     <button id="loadBtn">불러오기</button>
   </section>
 
@@ -25,6 +24,13 @@
     <span class="quick" data-v="카카오">카카오</span>
     <span class="quick" data-v="NAVER">NAVER</span>
     <span class="quick" data-v="에코프로비엠">에코프로비엠</span>
+  </div>
+
+  <section id="briefing" class="briefing" hidden></section>
+
+  <div class="statusbar">
+    <span id="updated"></span>
+    <label class="auto"><input type="checkbox" id="autoRefresh" checked /> 자동 새로고침(5분)</label>
   </div>
 
   <main id="results"></main>
