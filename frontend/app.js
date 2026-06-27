@@ -147,7 +147,9 @@ function cardHTML(it) {
     `<span class="term">${esc(t.term)}<span class="tip">${esc(t.explain)}</span></span>`
   ).join("");
 
-  const engineBadge = it.engine === "claude" ? "AI 쉬운 요약" : "쉬운 요약";
+  // 진짜 '쉬운' 부분은 💡한줄정리. 아래는 본문 핵심이므로 라벨을 구분한다.
+  const engineBadge = it.engine === "claude" ? "AI 요약"
+    : it.engine === "rule-en" ? "해외 요지" : "본문 요약";
   const tone = it.tone ? it.tone.tone : "neutral";
   const toneBadge = `<span class="tone ${tone}">${TONE_LABEL[tone] || ""}</span>`;
   const srcType = it.source_type ? `<span class="srctype st-${esc(it.source_type)}">${esc(it.source_type)}</span>` : "";
