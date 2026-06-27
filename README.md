@@ -49,16 +49,23 @@ cd backend && python3 app.py
 
 ## 배포 (어디서나 휴대폰으로 접속)
 
-세 가지 방법 모두 준비돼 있습니다.
+### ⚡ 원클릭 배포 (Render, 무료·카드 불필요)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/wntjqdl1215-hash/-12)
+
+위 버튼 → GitHub 로그인 → **Apply** 누르면 `render.yaml`을 읽어 자동 배포됩니다.
+2~3분 후 발급되는 `https://...onrender.com` 주소를 휴대폰에서 열고 '홈 화면에 추가'.
+
+### 다른 방법
 
 ```bash
-# A) Docker
+# Docker
 docker build -t stock-news . && docker run -p 8000:8000 stock-news
 
-# B) Render.com (무료) — 저장소 연결하면 render.yaml 자동 인식
-
-# C) Railway/Heroku 계열 — Procfile 자동 인식
+# Railway/Heroku 계열 — Procfile 자동 인식
 ```
+
+> 배포 시작 명령(검증됨): `gunicorn --chdir backend app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4`
 
 ---
 
