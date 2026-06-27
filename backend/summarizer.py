@@ -47,16 +47,38 @@ def find_terms(text: str) -> list[dict]:
     return found
 
 
+# 뉴스 '톤' 분류용 키워드 (투자 권유가 아니라, 기사 분위기를 초보자에게 알려주는 용도)
+_POS = ["상승", "강세", "급등", "호재", "최대", "경신", "개선", "상향", "순매수", "흑자",
+        "서프라이즈", "확대", "성장", "반등", "신고가", "수주", "기대", "jump", "rise", "surge", "high"]
+_NEG = ["하락", "약세", "급락", "악재", "쇼크", "부진", "하향", "순매도", "적자", "축소",
+        "감소", "우려", "리스크", "신저가", "손실", "철회", "drop", "fall", "plunge", "loss"]
+
+
+def classify_tone(text: str) -> dict:
+    """기사 톤을 긍정/부정/중립으로 분류. {tone, label} 반환."""
+    t = text or ""
+    pos = sum(1 for w in _POS if w in t)
+    neg = sum(1 for w in _NEG if w in t)
+    if pos > neg:
+        return {"tone": "positive", "label": "긍정"}
+    if neg > pos:
+        return {"tone": "negative", "label": "부정"}
+    return {"tone": "neutral", "label": "중립"}
+
+
 def summarize(title: str, body: str) -> dict:
     """{summary, terms, level} 반환."""
     text = (body or title or "").strip()
-    terms = find_terms(title + " " + text)
+    combined = title + " " + text
+    terms = find_terms(combined)
+    tone = classify_tone(combined)
 
     llm = _summarize_llm(title, text)
     if llm:
-        return {"summary": llm, "terms": terms, "level": "easy", "engine": "claude"}
+        return {"summary": llm, "terms": terms, "tone": tone, "level": "easy", "engine": "claude"}
 
-    return {"summary": _summarize_extractive(text), "terms": terms, "level": "easy", "engine": "rule"}
+    return {"summary": _summarize_extractive(text), "terms": terms, "tone": tone,
+            "level": "easy", "engine": "rule"}
 
 
 def _summarize_extractive(text: str) -> str:

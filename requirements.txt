@@ -2,5 +2,6 @@ flask>=3.0
 requests>=2.31
 beautifulsoup4>=4.12
 lxml>=5.0
+gunicorn>=21.0
 # 선택: 초보자 요약을 Claude AI로 더 자연스럽게 하고 싶을 때
 # anthropic>=0.40

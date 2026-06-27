@@ -53,7 +53,8 @@ body {
 }
 #loadBtn:active { transform: scale(0.98); }
 
-.chips { padding: 6px 16px 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.chips { padding: 6px 16px 4px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chips .label, .watchlist .label { font-size: 12px; color: var(--muted); }
 .quick {
   font-size: 13px;
   padding: 6px 12px;
@@ -64,6 +65,21 @@ body {
   border: 1px solid var(--line);
 }
 .quick:hover { color: var(--text); border-color: var(--accent); }
+
+/* 관심 종목 칩 (삭제 가능) */
+.watchlist { padding: 4px 16px 10px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 920px; margin: 0 auto; }
+.wchip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600;
+  padding: 6px 8px 6px 12px; border-radius: 999px;
+  background: rgba(79,140,255,0.15); color: #cfe0ff;
+  border: 1px solid rgba(79,140,255,0.35);
+}
+.wchip .x {
+  border: none; background: transparent; color: #9cc0ff;
+  font-size: 15px; line-height: 1; cursor: pointer; padding: 0 2px;
+}
+.wchip .x:hover { color: #fff; }
 
 /* 아침 브리핑 */
 .briefing {
@@ -119,7 +135,26 @@ main { padding: 4px 16px 40px; max-width: 920px; margin: 0 auto; }
   flex-direction: column;
   gap: 9px;
 }
-.card .meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; }
+.card .meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* 출처 종류 라벨 */
+.srctype { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+.st-네이버뉴스 { background: rgba(52,199,89,0.18); color: #5fd07a; }
+.st-구글뉴스 { background: rgba(79,140,255,0.18); color: #8fb4ff; }
+.st-블로그 { background: rgba(255,180,60,0.18); color: #ffc861; }
+
+/* NEW 배지 */
+.new {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.4px;
+  color: #fff; background: #ff3b3b; padding: 2px 6px; border-radius: 5px;
+}
+
+/* 카드 태그 줄(톤 + 용어) */
+.cardtags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tone { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.tone.positive { background: rgba(52,199,89,0.16); color: #5fd07a; }
+.tone.negative { background: rgba(255,91,91,0.16); color: #ff8585; }
+.tone.neutral  { background: rgba(154,160,170,0.16); color: #b6bcc6; }
 .card .title { font-size: 15.5px; font-weight: 650; margin: 0; }
 .card .summary {
   font-size: 14px;

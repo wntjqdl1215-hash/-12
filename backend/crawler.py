@@ -1,93 +1,62 @@
-"""네이버 금융에서 종목별 뉴스를 긁어오는 크롤러.
+"""여러 소스를 합쳐 종목 뉴스를 수집하는 진입점.
 
-- 종목별 뉴스 목록: https://finance.naver.com/item/news_news.naver?code=005930
-- 각 뉴스의 본문은 원문 링크로 연결(앱에서는 '본문 보기' 버튼)
-
-네트워크가 차단된 환경(예: 일부 클라우드 샌드박스)에서는 자동으로 샘플 데이터로
-폴백한다. 사용자 PC 등 인터넷이 열린 곳에서 돌리면 실제 뉴스가 나온다.
+흐름: 모든 소스에서 수집 → 제목 기준 중복 제거 → 최신순 정렬 → 상위 N개 본문 수집.
+어떤 소스가 실패하거나 네트워크가 막히면 자동으로 샘플 데이터로 폴백한다.
 """
 from __future__ import annotations
 
-import datetime as dt
 import re
-from dataclasses import asdict, dataclass
 
 import requests
 from bs4 import BeautifulSoup
 
 from sample_data import sample_news
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-    ),
-    "Referer": "https://finance.naver.com/",
-}
-
-
-@dataclass
-class NewsItem:
-    title: str
-    source: str          # 언론사
-    date: str            # YYYY.MM.DD HH:MM
-    url: str             # 원문(본문) 링크
-    code: str            # 종목코드
-    stock_name: str      # 종목 이름
-    body: str = ""       # 본문(요약용, 수집 시 best-effort)
-
-    def to_dict(self) -> dict:
-        return asdict(self)
+from sources import ALL_SOURCES, HEADERS, NewsItem
 
 
 def fetch_news(code: str, stock_name: str, limit: int = 6, with_body: bool = True) -> list[NewsItem]:
-    """종목코드로 뉴스 목록을 가져온다. 실패 시 샘플 데이터로 폴백."""
-    try:
-        items = _fetch_news_online(code, stock_name, limit)
-        if not items:
-            raise RuntimeError("no items parsed")
-        if with_body:
-            for it in items:
+    collected: list[NewsItem] = []
+    per_source = max(3, limit)  # 중복 제거 후 limit를 채우기 위해 소스별로 넉넉히
+
+    for source_fn in ALL_SOURCES:
+        try:
+            collected.extend(source_fn(code, stock_name, per_source))
+        except Exception:
+            continue  # 소스 하나 실패는 무시
+
+    items = _dedupe(collected)
+    items = _sort_recent(items)[:limit]
+
+    if not items:
+        return sample_news(code, stock_name, limit)  # 전부 실패 → 샘플 폴백
+
+    if with_body:
+        for it in items:
+            if not it.body:
                 it.body = _fetch_body(it.url)
-        return items
-    except Exception:
-        # 오프라인/차단 환경 폴백
-        return sample_news(code, stock_name, limit)
-
-
-def _fetch_news_online(code: str, stock_name: str, limit: int) -> list[NewsItem]:
-    url = "https://finance.naver.com/item/news_news.naver"
-    params = {"code": code, "page": 1, "sm": "title_entity_id.basic", "clusterId": ""}
-    r = requests.get(url, params=params, headers=HEADERS, timeout=8)
-    r.encoding = "euc-kr"
-    soup = BeautifulSoup(r.text, "lxml")
-
-    items: list[NewsItem] = []
-    for row in soup.select("table.type5 tr"):
-        title_tag = row.select_one("td.title a")
-        if not title_tag:
-            continue
-        info = row.select_one("td.info")
-        date_tag = row.select_one("td.date")
-        href = title_tag.get("href", "")
-        full_url = href if href.startswith("http") else "https://finance.naver.com" + href
-        items.append(
-            NewsItem(
-                title=title_tag.get_text(strip=True),
-                source=info.get_text(strip=True) if info else "",
-                date=date_tag.get_text(strip=True) if date_tag else "",
-                url=full_url,
-                code=code,
-                stock_name=stock_name,
-            )
-        )
-        if len(items) >= limit:
-            break
     return items
 
 
+def _dedupe(items: list[NewsItem]) -> list[NewsItem]:
+    seen = set()
+    out = []
+    for it in items:
+        key = re.sub(r"\s+", "", it.title)[:40]
+        if key and key not in seen:
+            seen.add(key)
+            out.append(it)
+    return out
+
+
+def _sort_recent(items: list[NewsItem]) -> list[NewsItem]:
+    # 'YYYY.MM.DD HH:MM' 또는 'YYYY.MM.DD' 형태를 비교용 숫자로
+    def key(it: NewsItem):
+        nums = re.findall(r"\d+", it.date or "")
+        return tuple(int(n) for n in nums) if nums else (0,)
+    return sorted(items, key=key, reverse=True)
+
+
 def _fetch_body(url: str) -> str:
-    """기사 본문 텍스트를 best-effort로 추출(요약 입력용)."""
     try:
         r = requests.get(url, headers=HEADERS, timeout=8)
         r.encoding = r.apparent_encoding or "euc-kr"
@@ -97,9 +66,9 @@ def _fetch_body(url: str) -> str:
             or soup.select_one("#dic_area")
             or soup.select_one(".articleCont")
             or soup.select_one("#newsct_article")
+            or soup.select_one("article")
         )
         text = node.get_text(" ", strip=True) if node else soup.get_text(" ", strip=True)
-        text = re.sub(r"\s+", " ", text)
-        return text[:2000]
+        return re.sub(r"\s+", " ", text)[:2000]
     except Exception:
         return ""

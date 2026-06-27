@@ -1,14 +1,19 @@
-"""주식 뉴스 한눈에 - MVP 백엔드.
+"""주식 뉴스 한눈에 - 백엔드.
 
 API:
-  GET /api/news?symbols=삼성전자,000660   -> 관심 종목들의 뉴스 + 초보자 요약
+  GET /api/news?symbols=삼성전자,000660   -> 관심 종목 뉴스 + 요약 + 톤 + NEW 표시
 정적 프론트엔드(frontend/)도 같은 서버에서 서빙한다.
 
-간단한 자동화: 결과를 메모리에 TTL 캐시(기본 5분)해서 새로고침 시 빠르게 응답.
+기능:
+ - 다중 소스 수집(sources.py) + 초보자 요약/용어/톤(summarizer.py)
+ - 결과 TTL 캐시(기본 5분)
+ - 새 기사 NEW 표시(서버가 종목별로 이미 본 URL을 기억)
+ - 서버사이드 자동 수집 스케줄러(요청된 종목을 주기적으로 미리 갱신)
 """
 from __future__ import annotations
 
 import os
+import threading
 import time
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -18,19 +23,18 @@ from stocks import normalize
 from summarizer import summarize
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
-CACHE_TTL = int(os.getenv("CACHE_TTL", "300"))  # 초
+CACHE_TTL = int(os.getenv("CACHE_TTL", "300"))           # 캐시 유효시간(초)
+REFRESH_INTERVAL = int(os.getenv("REFRESH_INTERVAL", "300"))  # 자동 수집 주기(초)
 
 app = Flask(__name__, static_folder=None)
-_cache: dict[str, tuple[float, dict]] = {}
+
+_cache: dict[str, tuple[float, dict]] = {}     # key -> (ts, result)
+_seen_urls: dict[str, set] = {}                # code -> 이미 본 기사 URL 집합
+_tracked: set[str] = set()                     # 자동 수집 대상(요청된 symbol:limit 키)
+_lock = threading.Lock()
 
 
-def _get_symbol_news(symbol: str, limit: int) -> dict:
-    now = time.time()
-    key = f"{symbol}:{limit}"
-    cached = _cache.get(key)
-    if cached and now - cached[0] < CACHE_TTL:
-        return cached[1]
-
+def _build_symbol_news(symbol: str, limit: int) -> dict:
     code, name = normalize(symbol)
     result = {"input": symbol, "code": code, "name": name, "items": [], "error": None}
     if not code:
@@ -38,21 +42,60 @@ def _get_symbol_news(symbol: str, limit: int) -> dict:
         return result
 
     news = fetch_news(code, name, limit=limit)
+
+    # NEW 판정: 해당 종목을 처음 보는 경우엔 기준선만 만들고 NEW 표시 안 함
+    first_time = code not in _seen_urls
+    seen = _seen_urls.setdefault(code, set())
+
     for n in news:
         s = summarize(n.title, n.body)
-        result["items"].append(
-            {
-                "title": n.title,
-                "source": n.source,
-                "date": n.date,
-                "url": n.url,            # '본문 보기'에서 새 탭으로 열림
-                "summary": s["summary"],
-                "terms": s["terms"],     # 초보자용 용어 설명
-                "engine": s["engine"],
-            }
-        )
-    _cache[key] = (now, result)
+        is_new = (not first_time) and (n.url not in seen)
+        result["items"].append({
+            "title": n.title,
+            "source": n.source,
+            "source_type": n.source_type,
+            "date": n.date,
+            "url": n.url,
+            "summary": s["summary"],
+            "terms": s["terms"],
+            "tone": s["tone"],
+            "engine": s["engine"],
+            "is_new": is_new,
+        })
+    for n in news:
+        seen.add(n.url)
     return result
+
+
+def _get_symbol_news(symbol: str, limit: int) -> dict:
+    now = time.time()
+    key = f"{symbol}:{limit}"
+    with _lock:
+        _tracked.add(key)
+        cached = _cache.get(key)
+        if cached and now - cached[0] < CACHE_TTL:
+            return cached[1]
+
+    result = _build_symbol_news(symbol, limit)
+    with _lock:
+        _cache[key] = (time.time(), result)
+    return result
+
+
+def _scheduler_loop():
+    """백그라운드: 요청된 종목들을 주기적으로 미리 수집해 캐시를 따뜻하게 유지."""
+    while True:
+        time.sleep(REFRESH_INTERVAL)
+        with _lock:
+            keys = list(_tracked)
+        for key in keys:
+            try:
+                symbol, limit = key.rsplit(":", 1)
+                res = _build_symbol_news(symbol, int(limit))
+                with _lock:
+                    _cache[key] = (time.time(), res)
+            except Exception:
+                continue
 
 
 @app.get("/api/news")
@@ -68,7 +111,7 @@ def api_news():
 
 @app.get("/api/health")
 def health():
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "tracked": len(_tracked)})
 
 
 # ----- 정적 프론트엔드 -----
@@ -81,6 +124,14 @@ def index():
 def static_files(path: str):
     return send_from_directory(FRONTEND_DIR, path)
 
+
+def _start_scheduler():
+    t = threading.Thread(target=_scheduler_loop, daemon=True)
+    t.start()
+
+
+# gunicorn 등으로 임포트될 때도 스케줄러 시작
+_start_scheduler()
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
