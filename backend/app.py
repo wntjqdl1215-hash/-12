@@ -19,6 +19,7 @@ import time
 from flask import Flask, jsonify, request, send_from_directory
 
 from crawler import fetch_news
+from disclosures import fetch_disclosures
 from prices import fetch_price
 from stocks import normalize
 from summarizer import summarize
@@ -32,7 +33,8 @@ MAX_TRACKED = 200    # 자동 수집 대상 최대 개수
 app = Flask(__name__, static_folder=None)
 
 _cache: dict[str, tuple[float, dict]] = {}     # key -> (ts, result)
-_seen_urls: dict[str, set] = {}                # code -> 이미 본 기사 URL 집합
+_seen_urls: dict[str, dict] = {}               # code -> 이미 본 기사 URL(삽입순서 dict)
+_seen_disc: dict[str, dict] = {}               # code -> 이미 본 공시 식별자
 _tracked: set[str] = set()                     # 자동 수집 대상(요청된 symbol:limit 키)
 _lock = threading.Lock()
 
@@ -46,6 +48,23 @@ def _build_symbol_news(symbol: str, limit: int) -> dict:
         return result
 
     result["price"] = fetch_price(code)
+
+    # 📢 공시(차별화 핵심): 저작권 안전한 DART 공공데이터 + 초보자 통역
+    discs = fetch_disclosures(code, name, limit=5)
+    with _lock:
+        first_d = code not in _seen_disc
+        dseen = _seen_disc.setdefault(code, {})
+        d_new = {f"{d.url}|{d.report_name}" for d in discs
+                 if f"{d.url}|{d.report_name}" not in dseen}
+        for d in discs:
+            dseen[f"{d.url}|{d.report_name}"] = None
+        if len(dseen) > MAX_SEEN:
+            _seen_disc[code] = dict(list(dseen.items())[-MAX_SEEN:])
+    result["disclosures"] = [
+        {**d.to_dict(), "is_new": (not first_d) and (f"{d.url}|{d.report_name}" in d_new)}
+        for d in discs
+    ]
+
     news = fetch_news(code, name, limit=limit)
 
     # NEW 판정 + seen 갱신은 락 안에서 (요청 스레드 + 스케줄러 스레드 경합 방지)

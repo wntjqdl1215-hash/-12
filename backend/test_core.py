@@ -4,6 +4,7 @@
 네트워크 불필요(순수 로직만 검증).
 """
 from crawler import _dedupe, _diversify, _norm_title, _sort_recent
+from disclosure_translator import translate
 from sources import NewsItem, _fmt_yyyymmdd
 from stocks import normalize
 from summarizer import classify_tone, summarize
@@ -81,6 +82,23 @@ def test_summarize_has_fields():
     assert s["tone"]["tone"] == "positive"
     assert s["takeaway"]
     assert any(t["term"] == "영업이익" for t in s["terms"])
+
+
+# ---------------------------------------------------------------- 공시 통역
+def test_disclosure_translate_tags():
+    assert translate("단일판매ㆍ공급계약체결")["tag"] == "positive"
+    assert translate("유상증자결정")["tag"] == "negative"
+    assert translate("주요사항보고서(자기주식취득결정)")["tag"] == "positive"
+    assert translate("횡령ㆍ배임혐의발생")["tag"] == "negative"
+    assert translate("최대주주변경")["tag"] == "caution"
+    assert translate("분기보고서")["tag"] == "neutral"
+
+
+def test_disclosure_translate_has_explanation():
+    t = translate("전환사채권발행결정")
+    assert t["explain"] and len(t["explain"]) > 10
+    # 모르는 공시도 기본 해설을 제공(빈손 금지)
+    assert translate("듣도보도못한공시")["explain"]
 
 
 def test_summarize_english_gives_korean_gist():

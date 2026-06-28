@@ -114,11 +114,12 @@ function renderBriefing(data) {
   const rows = stocks.map((s) => {
     const top = s.items[0];
     const tally = tallyHTML(s.tone_tally);
-    const newCnt = s.items.filter((i) => i.is_new).length;
+    const discCnt = (s.disclosures || []).length;
+    const headline = discCnt ? `📢 ${esc(s.disclosures[0].report_name)}` : esc(top.title);
     return `<li class="brief-row" data-target="stock-${esc(s.code)}">
       <span class="brief-name">${esc(s.name)}</span>
-      <span class="brief-headline">${esc(top.title)}</span>
-      <span class="brief-meta">${tally}${newCnt ? ` · NEW ${newCnt}` : ""}</span>
+      <span class="brief-headline">${headline}</span>
+      <span class="brief-meta">${discCnt ? `공시 ${discCnt} · ` : ""}${tally}</span>
     </li>`;
   }).join("");
 
@@ -154,6 +155,8 @@ function render(data) {
         ${priceHTML(s.price)}
       </div>
       ${s.insight ? `<div class="insight">${esc(s.insight)}</div>` : ""}
+      ${disclosuresHTML(s.disclosures)}
+      <div class="news-label">📰 뉴스</div>
       <div class="grid">${cards}</div></section>`;
   }).join("");
 
@@ -179,6 +182,31 @@ function render(data) {
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleTerm(el); }
     });
   });
+}
+
+// 📢 공시 섹션 (이 앱의 차별화 핵심)
+function disclosuresHTML(discs) {
+  if (!discs || !discs.length) return "";
+  const rows = discs.map((d) => {
+    const tagClass = d.tag || "neutral";
+    const isNew = d.is_new ? `<span class="new">NEW</span>` : "";
+    return `<div class="disc-row">
+      <div class="disc-top">
+        <span class="disc-tag ${tagClass}">${esc(d.label)}</span>
+        <span class="disc-name">${esc(d.report_name)}</span>
+        ${isNew}
+      </div>
+      <div class="disc-explain">💬 ${esc(d.explain)}</div>
+      <div class="disc-foot">
+        <span>${esc(d.date)} · ${esc(d.flr_nm)}</span>
+        <a href="${esc(d.url)}" target="_blank" rel="noopener">DART 원문 ↗</a>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="disc-box">
+    <div class="disc-head">📢 공시 <span class="disc-sub">어려운 공시를 쉽게 풀어드려요 · 출처 DART</span></div>
+    ${rows}
+  </div>`;
 }
 
 function priceHTML(p) {
@@ -263,14 +291,19 @@ function setupNotifications() {
 
 function notifyNew(data) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const disc = [];
   const news = [];
   (data.stocks || []).forEach((s) => {
+    (s.disclosures || []).forEach((d) => { if (d.is_new) disc.push(`${s.name} 공시: ${d.report_name}`); });
     (s.items || []).forEach((i) => { if (i.is_new) news.push(`${s.name}: ${i.title}`); });
   });
-  if (!news.length) return;
-  const body = news.slice(0, 3).join("\n") + (news.length > 3 ? `\n외 ${news.length - 3}건` : "");
+  // 공시 알림을 우선(차별화 핵심), 없으면 뉴스 알림
+  const list = disc.length ? disc : news;
+  if (!list.length) return;
+  const title = disc.length ? `📢 새 공시 ${disc.length}건` : `📈 새 뉴스 ${news.length}건`;
+  const body = list.slice(0, 3).join("\n") + (list.length > 3 ? `\n외 ${list.length - 3}건` : "");
   try {
-    new Notification(`📈 새 뉴스 ${news.length}건`, { body, icon: "/icons/icon-192.png", tag: "stock-news" });
+    new Notification(title, { body, icon: "/icons/icon-192.png", tag: "stock-news" });
   } catch (_) {}
 }
 
