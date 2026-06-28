@@ -65,8 +65,8 @@ _NEG_PHRASE = ["어닝 쇼크", "어닝쇼크", "목표주가 하향", "목표�
                "감자", "압수수색", "검찰 수사", "소송", "리스크 확대", "감리"]
 
 # 약한 단일어 (±1). 한국어는 부분일치, 영어는 단어경계로(부분일치 오탐 방지).
-_POS_WORD = ["상승", "개선", "확대", "성장", "기대", "수혜", "최대"]
-_NEG_WORD = ["하락", "감소", "축소", "우려", "리스크", "부담", "둔화", "낙폭"]
+_POS_WORD = ["상승", "개선", "확대", "성장", "기대", "수혜", "최대", "상회", "호조", "호실적", "신기록"]
+_NEG_WORD = ["하락", "감소", "축소", "우려", "리스크", "부담", "둔화", "낙폭", "하회", "부진"]
 _POS_EN = ["jump", "rise", "surge", "gain", "beat", "rally", "soar", "record high"]
 _NEG_EN = ["drop", "fall", "plunge", "loss", "miss", "decline", "cut", "slump", "tumble"]
 
@@ -152,27 +152,32 @@ def _is_english(text: str) -> bool:
     return ascii_letters > 20 and ascii_letters > hangul * 2
 
 
-def summarize(title: str, body: str) -> dict:
-    text = (body or title or "").strip()
-    combined = f"{title} {text}"
+def summarize(title: str, body: str = "") -> dict:
+    """저작권 안전: body는 '신호 계산용'으로만 쓰고 그대로 재표시하지 않는다.
+
+    뉴스 호출은 보통 body 없이(title-only) 부른다. 화면에 보이는 텍스트는
+    제목(원문)과 우리가 생성한 한 줄 정리/영어 요지뿐이다.
+    """
+    text = (body or "").strip()
+    basis = text or (title or "")
+    combined = f"{title} {text}".strip()
     terms = find_terms(combined)
     tone = classify_tone(combined)
+    takeaway = _easy_takeaway(combined)
 
-    # 1) LLM (키 있을 때) — 영어면 번역까지
+    # 1) LLM (키 있을 때)
     llm = _summarize_llm(title, text)
     if llm:
-        return {"summary": llm, "takeaway": _easy_takeaway(combined), "terms": terms,
+        return {"summary": llm, "takeaway": takeaway, "terms": terms,
                 "tone": tone, "level": "easy", "engine": "claude"}
 
-    # 2) 규칙 기반 폴백
-    takeaway = _easy_takeaway(combined)
-    if _is_english(text):
-        gist = _english_gist(title, tone)
-        return {"summary": gist, "takeaway": takeaway, "terms": terms,
-                "tone": tone, "level": "easy", "engine": "rule-en"}
+    # 2) 영어 기사 -> 한국어 요지(우리가 생성한 텍스트라 안전)
+    if _is_english(basis):
+        return {"summary": _english_gist(title, tone), "takeaway": takeaway,
+                "terms": terms, "tone": tone, "level": "easy", "engine": "rule-en"}
 
-    summary = _summarize_extractive(text)
-    return {"summary": summary, "takeaway": takeaway, "terms": terms,
+    # 3) 한국어: 본문 echo 없이 한 줄 정리만 (저작권 안전)
+    return {"summary": "", "takeaway": takeaway, "terms": terms,
             "tone": tone, "level": "easy", "engine": "rule"}
 
 

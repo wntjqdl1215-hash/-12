@@ -65,7 +65,8 @@ def _build_symbol_news(symbol: str, limit: int) -> dict:
         for d in discs
     ]
 
-    news = fetch_news(code, name, limit=limit)
+    # 저작권 안전: 기사 본문을 긁지 않는다(제목+링크만). 분석은 제목 기반.
+    news = fetch_news(code, name, limit=limit, with_body=False)
 
     # NEW 판정 + seen 갱신은 락 안에서 (요청 스레드 + 스케줄러 스레드 경합 방지)
     # seen은 삽입순서를 보존하는 dict -> 메모리 상한 시 오래된 것부터 정확히 제거(FIFO)
@@ -79,7 +80,7 @@ def _build_symbol_news(symbol: str, limit: int) -> dict:
             _seen_urls[code] = dict(list(seen.items())[-MAX_SEEN:])
 
     for n in news:
-        s = summarize(n.title, n.body)
+        s = summarize(n.title)   # 제목만으로 분석(본문 재표시 안 함)
         result["items"].append({
             "title": n.title,
             "source": n.source,

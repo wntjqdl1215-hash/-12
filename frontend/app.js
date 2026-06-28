@@ -224,9 +224,7 @@ function cardHTML(it) {
     `<span class="term" role="button" tabindex="0" aria-label="${esc(t.term)} 뜻 보기" data-explain="${esc(t.explain)}">${esc(t.term)}</span>`
   ).join("");
 
-  // 진짜 '쉬운' 부분은 💡한줄정리. 아래는 본문 핵심이므로 라벨을 구분한다.
-  const engineBadge = it.engine === "claude" ? "AI 요약"
-    : it.engine === "rule-en" ? "해외 요지" : "본문 요약";
+  const engineBadge = it.engine === "claude" ? "AI 요약" : "해외 요지";
   const tone = it.tone ? it.tone.tone : "neutral";
   const toneBadge = `<span class="tone ${tone}">${TONE_LABEL[tone] || ""}</span>`;
   const srcType = it.source_type ? `<span class="srctype st-${esc(it.source_type)}">${esc(it.source_type)}</span>` : "";
@@ -238,7 +236,7 @@ function cardHTML(it) {
     </div>
     <h3 class="title">${esc(it.title)}</h3>
     ${it.takeaway ? `<div class="takeaway">💡 ${esc(it.takeaway)}</div>` : ""}
-    <div class="summary"><span class="badge">${engineBadge}</span>${esc(it.summary)}</div>
+    ${it.summary ? `<div class="summary"><span class="badge">${engineBadge}</span>${esc(it.summary)}</div>` : ""}
     <div class="cardtags">${toneBadge}${terms}</div>
     <div class="term-explain" hidden></div>
     <div class="actions">
