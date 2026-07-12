@@ -1,0 +1,52 @@
+# 손님 유형 캐러셀 — 친구 태그(참여) 유도 포맷
+format: guest_types
+id: ep002
+title: 방탈출 손님 유형 4가지
+
+caption: |
+  C유형 때문에 탈출 못 한 사람 손 🙋
+  친구 태그하고 다음 방문 때 보여주세요
+hashtags:
+  - 방탈출유형테스트
+  - 방탈출
+  - 친구태그
+  - 룸엘이스케이프
+  - ○○놀거리
+
+slides:
+  - kind: hook
+    cam: STAFF ONLY 📋
+    kicker: 3년 차 직원이 정리한
+    headline: 방탈출 손님<br><em>유형 4가지</em>
+    sub: 당신 팀에도 반드시 한 명씩 있습니다
+    bg:
+      prompt: >-
+        clipboard with a checklist on a desk in a dark staff room,
+        green desk lamp glow
+
+  - kind: rank
+    rank: A
+    cam: TYPE A
+    rec: false
+    headline: 문어발형 🚪
+    quote: 일단 모든 서랍과 문을 다 열어봄.<br>순서? 그런 건 없음. 의외로 에이스일 확률 높음
+
+  - kind: rank
+    rank: B
+    cam: TYPE B
+    rec: false
+    headline: 명탐정 빙의형 🔎
+    quote: '"잠깐, 이건 함정이야."<br>아무것도 안 풀었는데 추리는 제일 많이 함'
+
+  - kind: rank
+    rank: C
+    cam: TYPE C
+    rec: false
+    headline: 힌트 거부형 ✋
+    quote: '"아직 아냐. 우리 힘으로 풀 수 있어."<br>— 남은 시간 4분에 나온 발언'
+
+  - kind: cta
+    cam: STAFF ONLY 📋
+    kicker: 투표 시간
+    headline: 당신 팀의 힌트 거부자,<br><em>댓글로 태그</em> 👇
+    sub: 유형별 추천 테마는 프로필 하이라이트에

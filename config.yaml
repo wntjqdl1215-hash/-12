@@ -1,0 +1,24 @@
+# 룸엘이스케이프 파이프라인 설정
+brand:
+  name: 룸엘이스케이프
+  handle: roomlescape
+  location: "○○역 3분"          # 실제 지점으로 교체
+
+render:
+  out_dir: out
+
+comfyui:
+  base_url: "http://127.0.0.1:8188"
+  workflow: comfyui/workflows/bg_txt2img.json
+  checkpoint: "sd_xl_base_1.0.safetensors"   # 설치된 체크포인트명으로 교체
+  timeout_sec: 300
+  negative_prompt: "text, letters, watermark, logo, people, faces, low quality, blurry, deformed"
+  # SDXL 친화 해상도 (슬라이드에는 cover로 깔리므로 정확히 4:5일 필요 없음)
+  bg_size:
+    "4:5": [832, 1216]
+    "9:16": [768, 1344]
+  # 포맷별 공통 스타일 서픽스 — 슬라이드 prompt 뒤에 자동으로 붙음
+  style_suffix:
+    cctv_moments: "dark room interior, green-tinted security camera footage look, grainy, dim lighting, cinematic, no people"
+    guest_types: "dark escape room interior, moody green ambient light, mysterious props, cinematic, no people"
+    trailer: "cinematic film still, warm amber low-key lighting, volumetric light, mysterious atmosphere, 35mm, no people"

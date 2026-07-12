@@ -1,0 +1,66 @@
+# 직원 CCTV 관찰형 — 도달 주력 포맷
+format: cctv_moments
+id: ep001
+title: 직원이 CCTV 보다 현타 온 순간 TOP3
+
+caption: |
+  죄송한데 3번은 진짜 참았습니다… 여러분 쪽지는 꼭 다시 읽어보세요 🙏
+  겪어본 사람은 태그
+hashtags:
+  - 방탈출
+  - 방탈출직원
+  - CCTV관점
+  - 룸엘이스케이프
+  - ○○방탈출
+  - ○○데이트
+
+slides:
+  - kind: hook
+    cam: CAM 03 · ROOM L
+    kicker: 직원은 다 보고 있다 👁
+    headline: 직원이 CCTV 보다<br><em>현타 온 순간</em> TOP3
+    sub: 모니터 앞에서 소리 없이 무너진 실제 사례들
+    bg:
+      prompt: >-
+        empty escape room monitoring desk with old CRT monitors glowing green
+        in a dark office at night
+
+  - kind: rank
+    rank: 3
+    cam: CAM 03 · 23:41:07
+    headline: 답을 손에 들고<br>30분째 방황
+    quote: 비밀번호 쪽지를 주머니에 넣어놓고<br>온 방을 다시 수색하기 시작함
+    bg:
+      prompt: >-
+        dark vintage room interior seen from a ceiling security camera,
+        scattered drawers and papers
+
+  - kind: rank
+    rank: 2
+    cam: CAM 01 · 22:15:33
+    headline: 힌트를 줬는데<br>반대로 간다
+    quote: '힌트: "시계를 자세히 보세요"<br>→ 본인 손목시계를 확인함 ⌚'
+    bg:
+      prompt: >-
+        old wall clock in a dim mysterious room, single spotlight,
+        seen from a high corner security camera
+
+  - kind: rank
+    rank: 1
+    cam: CAM 02 · 21:58:49
+    headline: 탈출 1분 전,<br>단체 기념사진 촬영
+    quote: '마지막 자물쇠 앞에서 갑자기 정렬…<br>결과: 12초 차이로 탈출 실패'
+    bg:
+      prompt: >-
+        heavy antique door with a big padlock in a dark room,
+        dramatic single overhead light
+
+  - kind: cta
+    cam: CAM 03 · ROOM L
+    kicker: 다음 편 주인공은 당신일 수도
+    headline: 당신의 팀은<br><em>무사히 탈출</em>할 수 있을까?
+    sub: 📍 프로필 링크에서 예약 · @roomlescape
+    bg:
+      prompt: >-
+        long dark corridor with a glowing exit door at the end,
+        green ambient light, fog

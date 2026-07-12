@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>{{ ep.id }} · {{ ep.title }}</title>
+<style>
+  :root {
+    --accent: #52e39a;
+    --accent-dim: #2e8f63;
+    --amber: #e8b45a;
+    --amber-dim: #8a6a33;
+    --rec: #ff4d4d;
+    --ink: #e9ece7;
+    --ink-sub: #b9c2ba;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: #000;
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Noto Sans CJK KR", sans-serif;
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: "SF Mono", "IBM Plex Mono", Consolas, monospace; }
+
+  .slide {
+    width: {{ width }}px;
+    height: {{ height }}px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 84px 76px;
+  }
+
+  /* ---- ComfyUI 배경 레이어 ---- */
+  .bg {
+    position: absolute; inset: 0; z-index: 0;
+    width: 100%; height: 100%; object-fit: cover;
+  }
+  .cctv .bg { filter: saturate(.55) brightness(.5) contrast(1.05); }
+  .film .bg { filter: saturate(.85) brightness(.55) contrast(1.08); }
+
+  /* ---- CCTV 테마 ---- */
+  .cctv {
+    background:
+      radial-gradient(120% 90% at 50% 0%, rgba(82,227,154,.14), transparent 55%),
+      linear-gradient(180deg, #131b16 0%, #0a0f0c 70%, #060907 100%);
+  }
+  .cctv .tint {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(6,9,7,.25) 0%, rgba(6,9,7,.05) 40%, rgba(6,9,7,.82) 100%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.028) 0 2px, transparent 2px 7px);
+    box-shadow: inset 0 0 220px rgba(0,0,0,.75);
+  }
+  .cctv.has-bg .tint {
+    background:
+      linear-gradient(180deg, rgba(6,9,7,.35) 0%, rgba(6,9,7,.15) 40%, rgba(6,9,7,.9) 100%),
+      radial-gradient(120% 90% at 50% 0%, rgba(82,227,154,.12), transparent 55%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.028) 0 2px, transparent 2px 7px);
+  }
+
+  /* ---- 예고편(필름) 테마 ---- */
+  .film {
+    background:
+      radial-gradient(100% 70% at 50% 10%, rgba(232,180,90,.16), transparent 60%),
+      linear-gradient(180deg, #17130c 0%, #0c0a07 65%, #070605 100%);
+  }
+  .film .tint {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(180deg, rgba(7,6,5,.3) 0%, rgba(7,6,5,.08) 40%, rgba(7,6,5,.85) 100%);
+    box-shadow: inset 0 0 260px rgba(0,0,0,.8);
+  }
+  .film .lb-top, .film .lb-bottom {
+    position: absolute; left: 0; right: 0; height: 6.5%;
+    background: #000; z-index: 2;
+  }
+  .film .lb-top { top: 0; }
+  .film .lb-bottom { bottom: 0; }
+
+  /* ---- 오버레이 텍스트 ---- */
+  .meta {
+    position: absolute; top: 46px; left: 56px; right: 56px; z-index: 3;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 27px; letter-spacing: .08em;
+  }
+  .cctv .meta { color: rgba(82,227,154,.85); }
+  .film .meta { top: 8.5%; color: rgba(232,180,90,.85); }
+  .rec { display: flex; align-items: center; gap: 14px; color: #ffb3b3; }
+  .rec i { width: 20px; height: 20px; border-radius: 50%; background: var(--rec); display: inline-block; }
+  .scene-note { font-size: 24px; letter-spacing: .12em; color: rgba(233,236,231,.5); text-transform: uppercase; }
+
+  .content { position: relative; z-index: 3; }
+  .film .content { padding-bottom: 9%; }
+
+  .kicker {
+    font-size: 31px; font-weight: 700; letter-spacing: .14em;
+    margin-bottom: 26px; color: var(--accent);
+  }
+  .film .kicker { color: var(--amber); }
+  .headline {
+    font-size: 78px; font-weight: 800; line-height: 1.32; letter-spacing: -.02em;
+  }
+  .headline em { font-style: normal; color: var(--accent); }
+  .film .headline em { color: var(--amber); }
+  .sub { margin-top: 30px; font-size: 36px; line-height: 1.6; color: var(--ink-sub); }
+  .rank {
+    font-size: 150px; font-weight: 800; line-height: 1;
+    color: transparent; -webkit-text-stroke: 4px var(--accent);
+    margin-bottom: 30px; opacity: .9;
+  }
+  .quote {
+    margin-top: 36px; padding: 26px 36px;
+    border-left: 6px solid var(--accent-dim);
+    font-size: 35px; line-height: 1.6; color: #cfd7cf;
+    background: rgba(82,227,154,.06);
+  }
+  .film .quote { border-color: var(--amber-dim); background: rgba(232,180,90,.07); }
+  .swipe-cue {
+    position: absolute; bottom: 34px; right: 56px; z-index: 3;
+    font-size: 27px; letter-spacing: .1em; color: rgba(233,236,231,.55);
+  }
+</style>
+</head>
+<body>
+{% for s in slides %}
+<div class="slide {{ theme }}{% if s.bg_file %} has-bg{% endif %}" id="slide-{{ loop.index }}">
+  {% if s.bg_file %}<img class="bg" src="{{ s.bg_file }}" alt="">{% endif %}
+  <div class="tint"></div>
+  {% if theme == 'film' %}<div class="lb-top"></div><div class="lb-bottom"></div>{% endif %}
+
+  {% if theme == 'film' %}
+    <div class="meta mono">
+      <span>{{ s.timecode | default('') }}</span>
+      <span class="scene-note">{{ s.scene_note | default('') }}</span>
+    </div>
+  {% else %}
+    <div class="meta mono">
+      <span>{{ s.cam | default('CAM 01 · ROOM L') }}</span>
+      {% if s.rec | default(true) %}<span class="rec"><i></i>REC</span>{% endif %}
+    </div>
+  {% endif %}
+
+  <div class="content">
+    {% if s.rank %}<div class="rank">{{ s.rank }}</div>{% endif %}
+    {% if s.kicker %}<div class="kicker">{{ s.kicker }}</div>{% endif %}
+    <div class="headline">{{ s.headline | replace('\n', '<br>') }}</div>
+    {% if s.quote %}<div class="quote">{{ s.quote | replace('\n', '<br>') }}</div>{% endif %}
+    {% if s.sub %}<div class="sub">{{ s.sub | replace('\n', '<br>') }}</div>{% endif %}
+  </div>
+
+  {% if s.kind == 'hook' %}<span class="swipe-cue">밀어서 보기 →</span>{% endif %}
+</div>
+{% endfor %}
+</body>
+</html>

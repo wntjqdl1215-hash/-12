@@ -1,0 +1,55 @@
+# AI 예고편 릴스 스토리보드 — 테마당 1개, 프로필 고정용 (총 8개 한도)
+# 각 슬라이드 = 릴스의 한 장면. 이 보드 기준으로 영상 컷을 제작한다.
+format: trailer
+id: ep003
+title: 세탁방 미스터리 — 공식 예고편 스토리보드
+
+caption: |
+  룸엘 신테마 「세탁방 미스터리」 공식 예고편 🌀
+  예고편 속 그 방, 실제로 들어갈 수 있습니다
+hashtags:
+  - 방탈출예고편
+  - 신테마오픈
+  - 룸엘이스케이프
+  - ○○방탈출
+
+slides:
+  - kind: scene
+    timecode: 00:00 – 00:03
+    scene_note: AI 컷 · 훅
+    kicker: '화면: 새벽의 세탁방, 혼자 도는 세탁기'
+    headline: '"그 세탁방엔<br>밤마다 <em>불이 켜진다</em>"'
+    sub: 🔊 세탁기 저음 + 심장박동. 첫 3초 자막 필수 — 무음 시청자가 대부분
+    bg:
+      prompt: >-
+        empty laundromat at 3am, one washing machine glowing from inside,
+        rows of dark machines, eerie
+
+  - kind: scene
+    timecode: 00:03 – 00:08
+    scene_note: AI 컷 · 세계관
+    kicker: '화면: 세탁기 안에서 발견되는 낡은 열쇠, 벽의 암호'
+    headline: '"단골들만 아는<br>4번 세탁기의 비밀"'
+    sub: 컷 2–3개를 빠르게. 정보는 주지 말고 질문만 남기기
+    bg:
+      prompt: >-
+        rusty old key inside a washing machine drum, extreme close up,
+        mysterious cryptic symbols scratched on a tiled wall
+
+  - kind: scene
+    timecode: 00:08 – 00:12
+    scene_note: 실사 전환 ★ 핵심
+    kicker: '화면: 실제 매장 테마 입구 문 (실사 촬영 1컷)'
+    headline: '"이 이야기는<br><em>실제로 존재</em>합니다"'
+    sub: AI → 실사 전환이 이 릴스의 전부. 이 1컷이 '예쁜 영상'을 '가고 싶은 장소'로 바꾼다
+    bg:
+      prompt: >-
+        laundromat entrance door at night with warm light leaking out,
+        cinematic street view, rain
+
+  - kind: scene
+    timecode: 00:12 – 00:15
+    scene_note: CTA
+    kicker: '화면: 테마 로고 + 검은 배경'
+    headline: 세탁방 미스터리<br><em>예약 오픈</em>
+    sub: 📍 ○○역 3분 · 프로필 링크에서 예약<br>2–4인 · 난이도 ★★★☆
